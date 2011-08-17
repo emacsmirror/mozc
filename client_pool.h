@@ -27,46 +27,44 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// Pool of Session instances, implemented with LRUCache.
+// Pool of Client instances, implemented with LRUCache.
 
-#include "unix/emacs/session_pool.h"
+#ifndef MOZC_UNIX_EMACS_CLIENT_POOL_H_
+#define MOZC_UNIX_EMACS_CLIENT_POOL_H_
+
+#include "base/linked_ptr.h"
+#include "client/client.h"
+#include "storage/lru_cache.h"
 
 namespace mozc {
 namespace emacs {
 
-static const int kMaxSessions = 64;  // max number of parallel sessions
+class ClientPool {
+ public:
+  typedef mozc::client::Client Client;
 
-SessionPool::SessionPool() : lru_cache_(kMaxSessions), next_id_(1) {
-}
+  ClientPool();
+  virtual ~ClientPool() {}
 
-int SessionPool::CreateSession() {
-  // Emacs supports at-least 28-bit integer.
-  const int k28BitIntMax = 134217727;
-  while (lru_cache_.HasKey(next_id_)) {
-    if (++next_id_ <= 0 || k28BitIntMax < next_id_) {
-      next_id_ = 1;  // Keep next_id_ to be a positive 28-bit integer.
-    }
-  }
-  lru_cache_.Insert(next_id_, linked_ptr<Session>(new Session()));
-  return next_id_++;
-}
+  // Returns a new session ID, which is not used in this pool.
+  int CreateClient();
 
-void SessionPool::DeleteSession(int id) {
-  lru_cache_.Erase(id);
-}
+  // Deletes a client.  If the specified session ID is not in this pool,
+  // does nothing.
+  void DeleteClient(int id);
 
-linked_ptr<SessionPool::Session> SessionPool::GetSession(int id) {
-  const linked_ptr<Session> *value = lru_cache_.Lookup(id);
-  if (value) {
-    lru_cache_.Insert(id, *value);  // Put id at the head of LRU.
-    return *value;
-  } else {
-    Session *session = new Session();
-    linked_ptr<Session> session_ptr(session);
-    lru_cache_.Insert(id, session_ptr);
-    return session_ptr;
-  }
-}
+  // Returns a Client instance.  If the specified session ID is not in this
+  // pool, creates a new Client and returns it.
+  linked_ptr<Client> GetClient(int id);
+
+ private:
+  mozc::LRUCache<int, linked_ptr<Client> > lru_cache_;
+  int next_id_;
+
+  DISALLOW_COPY_AND_ASSIGN(ClientPool);
+};
 
 }  // namespace emacs
 }  // namespace mozc
+
+#endif  // MOZC_UNIX_EMACS_CLIENT_POOL_H_
