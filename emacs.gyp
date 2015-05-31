@@ -57,9 +57,9 @@
       'dependencies': [
         '../../base/base.gyp:base',
         '../../client/client.gyp:client',
+        '../../composer/composer.gyp:key_parser',
         '../../config/config.gyp:config_protocol',
         '../../protocol/protocol.gyp:commands_proto',
-        '../../session/session_base.gyp:key_parser',
         '../../storage/storage.gyp:storage',
       ],
     },
